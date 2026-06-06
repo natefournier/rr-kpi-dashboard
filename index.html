@@ -1,0 +1,641 @@
+<!DOCTYPE html><script type="application/json" id="cowork-artifact-meta">
+{
+  "name": "Reimagined Roots KPI Dashboard",
+  "schemaVersion": 1,
+  "description": "Reimagined Roots weekly labor KPI dashboard — P&L from QuickBooks at top (week-by-week + cumulative revenue, monthly net income), plus billable % by employee/team. Updated through May 31–Jun 6, 2026. YTD: $377k revenue, $83.4k net income (QB thru Jun 6, 22.1% net margin — exceeds 20% goal)."
+}
+</script>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Reimagined Roots — KPI Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+<style>
+:root{color-scheme:light}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#F5F7F5;color:#1A1A1A;font-size:13px}
+.page{max-width:1140px;margin:0 auto;padding:14px}
+.hdr{background:#2E5E3E;color:#fff;padding:12px 18px;border-radius:8px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+.hdr h1{font-size:17px;font-weight:700}
+.hdr .sub{font-size:10px;opacity:.7}
+
+/* Goals section */
+.goals-section{background:#fff;border-radius:8px;padding:14px 16px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:12px;border-left:4px solid #3B6EA8}
+.goals-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
+.goals-header span:first-child{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#3B6EA8}
+.goals-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.goal-card{background:#F5F7F5;border-radius:6px;padding:12px 14px}
+.goal-card-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#555;margin-bottom:8px}
+.goal-amounts{display:flex;align-items:baseline;gap:4px;margin-bottom:6px}
+.goal-current{font-size:26px;font-weight:700;color:#2E5E3E}
+.goal-sep{font-size:16px;color:#aaa}
+.goal-target{font-size:18px;font-weight:600;color:#888}
+.goal-pct-lbl{font-size:12px;font-weight:600;color:#3B6EA8;margin-left:auto;align-self:center}
+.prog-wrap{height:14px;background:#dde;border-radius:7px;overflow:hidden;margin-bottom:6px;position:relative}
+.prog-fill{height:100%;border-radius:7px;transition:width .4s}
+.prog-fill.on-track{background:#4A8C5C}
+.prog-fill.behind{background:#E8A838}
+.prog-fill.far-behind{background:#c0392b}
+.prog-marker{position:absolute;top:0;height:100%;width:2px;background:rgba(0,0,0,.25)}
+.prog-marker-lbl{position:absolute;top:16px;font-size:8px;color:#888;transform:translateX(-50%)}
+.goal-stats-row{display:flex;justify-content:space-between;font-size:9px;color:#777}
+.goal-stat{display:flex;flex-direction:column;gap:1px}
+.goal-stat-val{font-size:13px;font-weight:700;color:#1A1A1A}
+.goal-stat-lbl{font-size:9px;color:#999;text-transform:uppercase;letter-spacing:.3px}
+.margin-bars{margin-bottom:8px}
+.margin-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.margin-row-lbl{font-size:9px;font-weight:600;width:36px;color:#555;text-align:right;flex-shrink:0}
+.margin-track{flex:1;height:20px;background:#dde;border-radius:4px;overflow:hidden;position:relative}
+.margin-actual-fill{height:100%;background:#4A8C5C;border-radius:4px;display:flex;align-items:center;padding-left:6px}
+.margin-goal-fill{height:100%;background:rgba(59,110,168,.35);border-radius:4px;display:flex;align-items:center;padding-left:6px;border:1.5px solid #3B6EA8}
+.margin-fill-lbl{font-size:10px;font-weight:700;color:#fff;white-space:nowrap}
+.margin-goal-lbl{font-size:10px;font-weight:700;color:#3B6EA8;white-space:nowrap}
+.ni-gap-pill{display:inline-block;background:#fff3cd;color:#856404;border:1px solid #ffc107;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:600;margin-top:2px}
+.gap-positive{background:#d4edda;color:#155724;border-color:#28a745}
+
+/* P&L section */
+.pl-section{background:#fff;border-radius:8px;padding:14px 16px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:12px;border-left:4px solid #2E5E3E}
+.pl-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.pl-header span:first-child{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#2E5E3E}
+.pl-note{font-size:9px;color:#999;font-style:italic}
+.pl-kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
+.pl-kpi{border-radius:6px;padding:10px 12px;background:#F5F7F5}
+.pl-kpi-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:#777;margin-bottom:3px}
+.pl-kpi-val{font-size:22px;font-weight:700;line-height:1.1}
+.pl-kpi-sub{font-size:9px;color:#999;margin-top:2px}
+.pl-charts{display:grid;grid-template-columns:1.7fr 1fr;gap:10px}
+.pl-chart-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#555;margin-bottom:8px}
+
+.kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+.kpi{background:#fff;border-radius:8px;padding:14px 16px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.kpi.install{border-top:3px solid #4A8C5C}
+.kpi.maint{border-top:3px solid #E8A838}
+.kpi.rev{border-top:3px solid #3B6EA8}
+.kpi-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#666;margin-bottom:4px}
+.kpi-val{font-size:28px;font-weight:700;line-height:1.1}
+.kpi.install .kpi-val{color:#4A8C5C}
+.kpi.maint .kpi-val{color:#E8A838}
+.kpi.rev .kpi-val{color:#3B6EA8}
+.kpi-sub{font-size:10px;color:#777;margin-top:3px}
+.row2{display:grid;grid-template-columns:1.8fr 1fr;gap:10px;margin-bottom:12px}
+.row2b{display:grid;grid-template-columns:1fr 2fr;gap:10px;margin-bottom:12px}
+.card{background:#fff;border-radius:8px;padding:14px 16px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.sec-ttl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#555;margin-bottom:10px}
+.cat-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:12px}
+.cat-tile{background:#fff;border-radius:8px;padding:10px 8px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.cat-dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-bottom:4px}
+.cat-nm{font-size:9px;text-transform:uppercase;letter-spacing:.3px;color:#777;margin-bottom:3px}
+.cat-amt{font-size:14px;font-weight:700}
+.cat-cnt{font-size:9px;color:#aaa;margin-top:2px}
+.emp-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:12px}
+.emp{background:#fff;border-radius:8px;padding:10px 12px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.emp-nm{font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.emp-team{font-size:9px;margin-bottom:6px}
+.emp-pct{font-size:20px;font-weight:700}
+.emp-stat{font-size:9px;color:#777;margin-bottom:5px}
+.spark{height:36px}
+table{width:100%;border-collapse:collapse;font-size:11px}
+thead th{background:#2E5E3E;color:#fff;padding:7px 8px;text-align:center;font-size:10px;font-weight:600;white-space:nowrap}
+thead th:first-child{text-align:left}
+tbody tr:nth-child(even){background:#F5F7F5}
+tbody tr:hover{background:#D9E8D9}
+tbody td{padding:6px 8px;border-bottom:1px solid #E8EDE8;text-align:center}
+tbody td:first-child{text-align:left;font-weight:500}
+.avg-row td{color:#3B6EA8;font-style:italic;background:#EEF3FA!important}
+.hi{color:#2a7a40;font-weight:600}
+.md{color:#C07800;font-weight:600}
+.lo{color:#c0392b;font-weight:600}
+</style>
+</head>
+<body>
+<div class="page">
+
+<div class="hdr">
+  <div>
+    <h1>Reimagined Roots — KPI Dashboard</h1>
+    <div class="sub">Labor &amp; Revenue Analytics &nbsp;|&nbsp; Jan 2026 – Present</div>
+  </div>
+  <div style="text-align:right">
+    <div style="font-size:13px;font-weight:600" id="latestWk">—</div>
+    <div class="sub">Latest week</div>
+  </div>
+</div>
+
+<!-- ===== P&L SECTION ===== -->
+<div class="pl-section">
+  <div class="pl-header">
+    <span>P&amp;L — QuickBooks YTD 2026</span>
+    <span class="pl-note">Jan 1 – Jun 6 &nbsp;·&nbsp; Source: QuickBooks (Cash Basis)</span>
+  </div>
+
+  <div class="pl-kpi-row">
+    <div class="pl-kpi" style="border-left:3px solid #2E5E3E">
+      <div class="pl-kpi-lbl">YTD Revenue</div>
+      <div class="pl-kpi-val" style="color:#2E5E3E">$377k</div>
+      <div class="pl-kpi-sub">Jan–Jun 6, 2026</div>
+    </div>
+    <div class="pl-kpi" style="border-left:3px solid #4A8C5C">
+      <div class="pl-kpi-lbl">YTD Gross Profit</div>
+      <div class="pl-kpi-val" style="color:#4A8C5C">$233k</div>
+      <div class="pl-kpi-sub">61.7% gross margin</div>
+    </div>
+    <div class="pl-kpi" style="border-left:3px solid #708090">
+      <div class="pl-kpi-lbl">YTD Operating Expenses</div>
+      <div class="pl-kpi-val" style="color:#708090">$155k</div>
+      <div class="pl-kpi-sub">Excl. COGS</div>
+    </div>
+    <div class="pl-kpi" style="border-left:3px solid #2a7a40">
+      <div class="pl-kpi-lbl">YTD Net Income</div>
+      <div class="pl-kpi-val" style="color:#2a7a40">$83.4k</div>
+      <div class="pl-kpi-sub">22.1% net margin ✓</div>
+    </div>
+  </div>
+
+  <div class="pl-charts">
+    <div>
+      <div class="pl-chart-lbl">Weekly Revenue &amp; Cumulative Revenue</div>
+      <div style="position:relative;height:190px"><canvas id="plRevChart"></canvas></div>
+    </div>
+    <div>
+      <div class="pl-chart-lbl">Monthly Net Income</div>
+      <div style="position:relative;height:190px"><canvas id="plNIChart"></canvas></div>
+    </div>
+  </div>
+</div>
+<!-- ===== END P&L SECTION ===== -->
+
+<!-- ===== GOALS SECTION ===== -->
+<div class="goals-section">
+  <div class="goals-header">
+    <span>2026 Annual Goals</span>
+    <span style="font-size:9px;color:#999;font-style:italic">YTD through Jun 6 · Revenue goal: $1.1M · Net profit goal: 20%</span>
+  </div>
+
+  <div class="goals-grid">
+
+    <!-- Revenue Goal Card -->
+    <div class="goal-card">
+      <div class="goal-card-title">Revenue Goal</div>
+      <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:8px">
+        <div class="goal-current" id="gRevYTD">$377k</div>
+        <div class="goal-sep">/</div>
+        <div class="goal-target">$1.1M goal</div>
+        <div class="goal-pct-lbl" id="gRevPct">34.3%</div>
+      </div>
+
+      <div class="prog-wrap">
+        <div class="prog-fill behind" id="gRevBar" style="width:34.3%"></div>
+        <!-- "on pace" marker: 157/365 = 43.0% of year elapsed -->
+        <div class="prog-marker" id="gPaceMarker" style="left:43.0%"></div>
+      </div>
+      <div style="position:relative;height:16px;margin-bottom:8px">
+        <span class="prog-marker-lbl" style="left:43.0%;font-size:8px;color:#888;position:absolute;transform:translateX(-50%)">Year 43%</span>
+      </div>
+
+      <div class="goal-stats-row">
+        <div class="goal-stat">
+          <div class="goal-stat-val" id="gRevRemaining">$723k</div>
+          <div class="goal-stat-lbl">Remaining</div>
+        </div>
+        <div class="goal-stat" style="text-align:center">
+          <div class="goal-stat-val" id="gRevProjVal" style="color:#C07800">$877k</div>
+          <div class="goal-stat-lbl">Linear projection</div>
+        </div>
+        <div class="goal-stat" style="text-align:right">
+          <div class="goal-stat-val" id="gRevShortfall" style="color:#c0392b">-$223k</div>
+          <div class="goal-stat-lbl">Pace gap vs goal</div>
+        </div>
+      </div>
+      <div style="margin-top:6px;font-size:9px;color:#888;font-style:italic">⚠ Linear pace; seasonal acceleration expected May–Aug</div>
+    </div>
+
+    <!-- Net Profit Goal Card -->
+    <div class="goal-card">
+      <div class="goal-card-title">Net Profit Margin Goal</div>
+
+      <div class="margin-bars">
+        <div class="margin-row">
+          <div class="margin-row-lbl">Actual</div>
+          <div class="margin-track">
+            <!-- 22.1% actual EXCEEDS 20% goal = show full bar -->
+            <div class="margin-actual-fill" style="width:100%">
+              <span class="margin-fill-lbl">22.1% ✓</span>
+            </div>
+          </div>
+        </div>
+        <div class="margin-row">
+          <div class="margin-row-lbl">Goal</div>
+          <div class="margin-track">
+            <div class="margin-goal-fill" style="width:100%">
+              <span class="margin-goal-lbl">20%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="goal-stats-row" style="margin-bottom:6px">
+        <div class="goal-stat">
+          <div class="goal-stat-val" style="color:#4A8C5C">$83.4k</div>
+          <div class="goal-stat-lbl">Net income (QB thru Jun 6)</div>
+        </div>
+        <div class="goal-stat" style="text-align:center">
+          <div class="goal-stat-val" style="color:#3B6EA8">$220k</div>
+          <div class="goal-stat-lbl">Goal ($1.1M × 20%)</div>
+        </div>
+        <div class="goal-stat" style="text-align:right">
+          <div class="goal-stat-val" style="color:#c0392b">-$136.6k</div>
+          <div class="goal-stat-lbl">Gap to goal</div>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+        <span class="ni-gap-pill gap-positive">Need 18.9% margin on remaining $723k — ahead of 20% goal!</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+<!-- ===== END GOALS SECTION ===== -->
+
+<div class="kpi-row">
+  <div class="kpi install">
+    <div class="kpi-lbl">Install Team Billable %</div>
+    <div class="kpi-val" id="kpiI">—</div>
+    <div class="kpi-sub">Running avg: <b id="kpiIA">—</b></div>
+  </div>
+  <div class="kpi maint">
+    <div class="kpi-lbl">Maintenance Team Billable %</div>
+    <div class="kpi-val" id="kpiM">—</div>
+    <div class="kpi-sub">Running avg: <b id="kpiMA">—</b></div>
+  </div>
+  <div class="kpi rev">
+    <div class="kpi-lbl">Revenue / Labor Hour</div>
+    <div class="kpi-val" id="kpiR">—</div>
+    <div class="kpi-sub">Running avg: <b>$94.05</b></div>
+  </div>
+</div>
+
+<div class="row2">
+  <div class="card">
+    <div class="sec-ttl">Team Billable % — Week by Week</div>
+    <div style="position:relative;height:190px"><canvas id="teamChart"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="sec-ttl">Revenue / Labor Hour</div>
+    <div style="position:relative;height:190px"><canvas id="revHrChart"></canvas></div>
+  </div>
+</div>
+
+<div class="row2b">
+  <div class="card">
+    <div class="sec-ttl">Revenue Mix — YTD <span id="ytdTot" style="font-style:italic;text-transform:none;font-weight:400;letter-spacing:0;color:#444"></span></div>
+    <div style="position:relative;height:190px"><canvas id="donutChart"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="sec-ttl">Weekly Revenue by Category <span style="font-style:italic;text-transform:none;font-weight:400;letter-spacing:0;color:#999;font-size:9px">(Mar–May 30 · Landscaping = all install/project work)</span></div>
+    <div style="position:relative;height:190px"><canvas id="stackChart"></canvas></div>
+  </div>
+</div>
+
+<div class="cat-grid" id="catGrid"></div>
+
+<div class="sec-ttl" style="margin-bottom:6px">Individual Billable % — Latest Week</div>
+<div class="emp-grid" id="empGrid"></div>
+
+<div class="card" style="margin-bottom:14px">
+  <div class="sec-ttl" style="padding-bottom:8px;border-bottom:1px solid #eee;margin-bottom:8px">Weekly Detail Table</div>
+  <div style="overflow-x:auto">
+    <table>
+      <thead><tr>
+        <th>Week</th><th>Install %</th><th>Maint %</th>
+        <th>Carly</th><th>Rachael</th><th>Drew</th><th>John</th><th>Steve</th>
+        <th>Total Hrs</th><th>Revenue</th><th>$/Hr</th>
+      </tr></thead>
+      <tbody id="tBody"></tbody>
+    </table>
+  </div>
+</div>
+
+</div>
+
+<script>
+// ===== QuickBooks P&L — parsed from QB CSV export (Jan 1–May 24, 2026, Cash Basis) =====
+// Weekly data
+const QB_WEEKS = [
+  {lbl:"Jan 1",   income:0,        cogs:0,       grossProfit:0,        expenses:1058.74,  netIncome:-1058.74},
+  {lbl:"Jan 5",   income:6790.00,  cogs:123.68,  grossProfit:6666.32,  expenses:3174.42,  netIncome:-328.69},
+  {lbl:"Jan 12",  income:1437.50,  cogs:-2.21,   grossProfit:1439.71,  expenses:3013.94,  netIncome:-1574.23},
+  {lbl:"Jan 19",  income:8675.00,  cogs:0,       grossProfit:8675.00,  expenses:5764.70,  netIncome:2910.30},
+  {lbl:"Jan 26",  income:1404.00,  cogs:39.33,   grossProfit:1364.67,  expenses:8464.95,  netIncome:-9023.71},
+  {lbl:"Feb 2",   income:2594.45,  cogs:135.34,  grossProfit:2459.11,  expenses:5620.60,  netIncome:-3161.49},
+  {lbl:"Feb 9",   income:6290.30,  cogs:781.74,  grossProfit:5508.56,  expenses:8880.11,  netIncome:14128.45}, // incl. $17.5k bad debt recovery
+  {lbl:"Feb 16",  income:2220.00,  cogs:1115.93, grossProfit:1104.07,  expenses:8276.37,  netIncome:-7172.30},
+  {lbl:"Feb 23",  income:3433.53,  cogs:512.64,  grossProfit:2920.89,  expenses:4166.66,  netIncome:-3169.20},
+  {lbl:"Mar 2",   income:5775.50,  cogs:540.15,  grossProfit:5235.35,  expenses:8730.58,  netIncome:-3495.23},
+  {lbl:"Mar 9",   income:5115.50,  cogs:294.16,  grossProfit:4821.34,  expenses:4136.12,  netIncome:685.22},
+  {lbl:"Mar 16",  income:13218.83, cogs:1609.07, grossProfit:11609.76, expenses:8719.00,  netIncome:2890.76},
+  {lbl:"Mar 23",  income:26384.37, cogs:1343.90, grossProfit:25040.47, expenses:5445.76,  netIncome:19594.71},
+  {lbl:"Mar 30",  income:28824.20, cogs:5887.53, grossProfit:22936.67, expenses:16004.04, netIncome:5909.24},
+  {lbl:"Apr 6",   income:24632.00, cogs:15034.78,grossProfit:9597.22,  expenses:3766.08,  netIncome:6130.14},
+  {lbl:"Apr 13",  income:27710.75, cogs:13831.02,grossProfit:13879.73, expenses:9563.89,  netIncome:4315.84},
+  {lbl:"Apr 20",  income:19048.52, cogs:15193.41,grossProfit:3855.11,  expenses:6445.58,  netIncome:-2590.47},
+  {lbl:"Apr 27",  income:13650.60, cogs:10300.03,grossProfit:3350.57,  expenses:7685.99,  netIncome:-7744.53},
+  {lbl:"May 4",   income:24078.63, cogs:12087.39,grossProfit:11991.24, expenses:5329.61,  netIncome:6661.63},
+  {lbl:"May 11",  income:30872.81, cogs:17685.70,grossProfit:13187.11, expenses:5069.82,  netIncome:8117.29},
+  {lbl:"May 18",  income:24950.02, cogs:17483.04,grossProfit:7466.98,  expenses:11213.71, netIncome:-3596.73},
+  {lbl:"May 25",  income:99854.54, cogs:30247.42,grossProfit:69607.12, expenses:14627.68, netIncome:54979.44}, // May 25–Jun 6 combined (QB updated Jun 6)
+];
+
+// Monthly aggregates (grouped by week-start month)
+const QB_MONTHLY = [
+  {month:"January",   revenue:18306.50, cogs:160.80,   grossProfit:18145.70, opex:21476.75, netIncome:-9075.07},
+  {month:"February",  revenue:14538.28, cogs:2545.65,  grossProfit:11992.63, opex:26943.74, netIncome:625.46},  // Feb NI incl. $17.5k bad debt recovery
+  {month:"March",     revenue:79318.40, cogs:9674.81,  grossProfit:69643.59, opex:43035.50, netIncome:25584.70},
+  {month:"April",     revenue:85041.87, cogs:54359.24, grossProfit:30682.63, opex:27461.54, netIncome:110.98},
+  {month:"May ¹",     revenue:79901.46, cogs:47256.13, grossProfit:32645.33, opex:21613.14, netIncome:11182.19},
+  {month:"June ¹",   revenue:99854.54, cogs:30247.42, grossProfit:69607.12, opex:14627.68, netIncome:54979.44}, // May 25–Jun 6 (QB updated Jun 6)
+];
+
+// Cumulative weekly revenue
+let _cum = 0;
+const QB_CUM = QB_WEEKS.map(w => { _cum += w.income; return Math.round(_cum); });
+
+// ---- P&L Charts ----
+// Revenue + Cumulative (dual axis)
+new Chart(document.getElementById("plRevChart"), {
+  type: "bar",
+  data: {
+    labels: QB_WEEKS.map(w => w.lbl),
+    datasets: [
+      {
+        label: "Weekly Revenue",
+        data: QB_WEEKS.map(w => w.income),
+        backgroundColor: "rgba(46,94,62,.65)",
+        borderRadius: 2,
+        yAxisID: "yL",
+        order: 2
+      },
+      {
+        label: "Cumulative Revenue",
+        data: QB_CUM,
+        type: "line",
+        borderColor: "#3B6EA8",
+        backgroundColor: "rgba(59,110,168,.07)",
+        borderWidth: 2,
+        pointRadius: 3,
+        pointBackgroundColor: "#3B6EA8",
+        fill: false,
+        tension: .3,
+        yAxisID: "yR",
+        order: 1
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {position:"top", labels:{font:{size:9}, boxWidth:12, padding:5}},
+      tooltip: {
+        mode: "index",
+        callbacks: {
+          label: c => {
+            const v = c.raw;
+            if (c.datasetIndex === 1) return " Cumulative: $" + v.toLocaleString();
+            return " Revenue: $" + v.toLocaleString("en-US",{maximumFractionDigits:0});
+          }
+        }
+      }
+    },
+    scales: {
+      yL: {
+        position:"left",
+        ticks:{callback:v=>"$"+(v/1000).toFixed(0)+"k", font:{size:9}},
+        grid:{color:"#eee"}
+      },
+      yR: {
+        position:"right",
+        ticks:{callback:v=>"$"+(v/1000).toFixed(0)+"k", font:{size:9}},
+        grid:{display:false}
+      },
+      x: {ticks:{font:{size:8}, maxRotation:45}, grid:{display:false}}
+    }
+  }
+});
+
+// Monthly Net Income bars
+new Chart(document.getElementById("plNIChart"), {
+  type: "bar",
+  data: {
+    labels: QB_MONTHLY.map(m => m.month),
+    datasets: [{
+      label: "Net Income",
+      data: QB_MONTHLY.map(m => m.netIncome),
+      backgroundColor: QB_MONTHLY.map(m => m.netIncome >= 0 ? "rgba(42,122,64,.75)" : "rgba(192,57,43,.65)"),
+      borderRadius: 4
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {display:false},
+      tooltip: {
+        callbacks: {
+          label: c => {
+            const v = c.raw;
+            const note = c.dataIndex === 1 ? " (incl. $17.5k bad debt recovery)" : "";
+            return " " + (v >= 0 ? "$" : "-$") + Math.abs(v).toLocaleString("en-US",{maximumFractionDigits:0}) + note;
+          }
+        }
+      }
+    },
+    scales: {
+      y: {
+        ticks: {
+          callback: v => (v >= 0 ? "$" : "-$") + (Math.abs(v)/1000).toFixed(0) + "k",
+          font: {size:9}
+        },
+        grid: {color:"#eee"}
+      },
+      x: {ticks:{font:{size:9}}, grid:{display:false}}
+    }
+  }
+});
+
+// ===== Labor KPI Data =====
+const WEEKS=[
+  {week_start:"2026-01-04",week_label:"Jan 4 – Jan 10",revenue:16245.5,total_hours:35.1,rev_per_hr:463.23,maintenance:0,carpentry:9418,hardscaping:5327.5,landscaping:0,design_consultation:1250,education:250,install_pct:0,maintenance_pct:0,install_total:0,maintenance_total:0,employees:{}},
+  {week_start:"2026-01-18",week_label:"Jan 18 – Jan 24",revenue:0,total_hours:27.9,rev_per_hr:0,maintenance:0,carpentry:0,hardscaping:0,landscaping:0,design_consultation:0,education:0,install_pct:0,maintenance_pct:0,install_total:0,maintenance_total:0,employees:{"John Powers":{bill:0,nonbill:0,total:0,pct:0},"Carly Fournier":{bill:0,nonbill:0,total:0,pct:0},"Stephen J. Gaj":{bill:0,nonbill:2.17,total:2.17,pct:0},"Rachael Savoie":{bill:0,nonbill:0,total:0,pct:0},"Drew Bleasdell":{bill:0,nonbill:0,total:0,pct:0}}},
+  {week_start:"2026-01-25",week_label:"Jan 25 – Jan 31",revenue:500,total_hours:30.9,rev_per_hr:16.21,maintenance:0,carpentry:0,hardscaping:0,landscaping:0,design_consultation:500,education:0,install_pct:0,maintenance_pct:0,install_total:0,maintenance_total:0,employees:{"John Powers":{bill:0,nonbill:0,total:0,pct:0},"Carly Fournier":{bill:0,nonbill:0,total:0,pct:0},"Stephen J. Gaj":{bill:0,nonbill:11.37,total:11.37,pct:0},"Rachael Savoie":{bill:0,nonbill:0,total:0,pct:0},"Drew Bleasdell":{bill:0,nonbill:0,total:0,pct:0}}},
+  {week_start:"2026-02-01",week_label:"Feb 1 – Feb 7",revenue:0,total_hours:33.6,rev_per_hr:0,maintenance:0,carpentry:0,hardscaping:0,landscaping:0,design_consultation:0,education:0,install_pct:0,maintenance_pct:0,install_total:0,maintenance_total:0,employees:{"John Powers":{bill:0,nonbill:0,total:0,pct:0},"Carly Fournier":{bill:0,nonbill:0,total:0,pct:0},"Stephen J. Gaj":{bill:0,nonbill:10.88,total:10.88,pct:0},"Rachael Savoie":{bill:0,nonbill:0,total:0,pct:0},"Drew Bleasdell":{bill:0,nonbill:0,total:0,pct:0}}},
+  {week_start:"2026-02-08",week_label:"Feb 8 – Feb 14",revenue:3046.5,total_hours:60,rev_per_hr:50.79,maintenance:0,carpentry:789.9,hardscaping:345,landscaping:861.6,design_consultation:1050,education:0,install_pct:0,maintenance_pct:0,install_total:0,maintenance_total:0,employees:{"John Powers":{bill:0,nonbill:0,total:0,pct:0},"Carly Fournier":{bill:0,nonbill:0,total:0,pct:0},"Stephen J. Gaj":{bill:0,nonbill:10.18,total:10.18,pct:0},"Rachael Savoie":{bill:0,nonbill:0,total:0,pct:0},"Drew Bleasdell":{bill:0,nonbill:0,total:0,pct:0}}},
+  {week_start:"2026-02-15",week_label:"Feb 15 – Feb 21",revenue:5017.85,total_hours:64.7,rev_per_hr:77.53,maintenance:1660,carpentry:0,hardscaping:1107.85,landscaping:0,design_consultation:2250,education:0,install_pct:0,maintenance_pct:0,install_total:0,maintenance_total:0,employees:{"John Powers":{bill:0,nonbill:0,total:0,pct:0},"Carly Fournier":{bill:0,nonbill:0,total:0,pct:0},"Stephen J. Gaj":{bill:0,nonbill:8.76,total:8.76,pct:0},"Rachael Savoie":{bill:0,nonbill:0,total:0,pct:0},"Drew Bleasdell":{bill:0,nonbill:0,total:0,pct:0}}},
+  {week_start:"2026-02-22",week_label:"Feb 22 – Feb 28",revenue:220,total_hours:45.9,rev_per_hr:4.79,maintenance:220,carpentry:0,hardscaping:0,landscaping:0,design_consultation:0,education:0,install_pct:0,maintenance_pct:0,install_total:0,maintenance_total:0,employees:{"John Powers":{bill:0,nonbill:0,total:0,pct:0},"Carly Fournier":{bill:0,nonbill:0,total:0,pct:0},"Stephen J. Gaj":{bill:0,nonbill:10.33,total:10.33,pct:0},"Rachael Savoie":{bill:0,nonbill:0,total:0,pct:0},"Drew Bleasdell":{bill:0,nonbill:0,total:0,pct:0}}},
+  {week_start:"2026-03-01",week_label:"Mar 1 – Mar 7",revenue:3260.5,total_hours:48.8,rev_per_hr:66.81,maintenance:1660.5,carpentry:0,hardscaping:0,landscaping:0,design_consultation:1450,education:150,install_pct:0,maintenance_pct:0,install_total:0,maintenance_total:0,employees:{"John Powers":{bill:0,nonbill:0,total:0,pct:0},"Carly Fournier":{bill:0,nonbill:0,total:0,pct:0},"Stephen J. Gaj":{bill:0,nonbill:8.48,total:8.48,pct:0},"Rachael Savoie":{bill:0,nonbill:0,total:0,pct:0},"Drew Bleasdell":{bill:0,nonbill:0,total:0,pct:0}}},
+  {week_start:"2026-03-08",week_label:"Mar 8 – Mar 14",revenue:4679.25,total_hours:102.6,rev_per_hr:45.62,maintenance:4679.25,carpentry:0,hardscaping:0,landscaping:0,design_consultation:0,education:0,install_pct:35.8,maintenance_pct:66.4,install_total:31.06,maintenance_total:29.39,employees:{"John Powers":{bill:0,nonbill:9.96,total:9.96,pct:0},"Carly Fournier":{bill:11.02,nonbill:4.16,total:15.18,pct:72.6},"Stephen J. Gaj":{bill:0,nonbill:9.93,total:9.93,pct:0},"Rachael Savoie":{bill:8.49,nonbill:5.72,total:14.21,pct:59.7},"Drew Bleasdell":{bill:11.13,nonbill:9.97,total:21.1,pct:52.7}}},
+  {week_start:"2026-03-15",week_label:"Mar 15 – Mar 21",revenue:8777.9,total_hours:88.2,rev_per_hr:99.58,maintenance:4374.75,carpentry:0,hardscaping:0,landscaping:2434.4,design_consultation:1968.75,education:0,install_pct:77.4,maintenance_pct:63.1,install_total:28.07,maintenance_total:18.74,employees:{"John Powers":{bill:11.42,nonbill:1.53,total:12.95,pct:88.2},"Carly Fournier":{bill:4.08,nonbill:1.77,total:5.85,pct:69.7},"Stephen J. Gaj":{bill:0,nonbill:1.38,total:1.38,pct:0},"Rachael Savoie":{bill:7.74,nonbill:5.15,total:12.89,pct:60},"Drew Bleasdell":{bill:10.32,nonbill:4.8,total:15.12,pct:68.3}}},
+  {week_start:"2026-03-22",week_label:"Mar 22 – Mar 28",revenue:21496.1,total_hours:133.6,rev_per_hr:160.85,maintenance:3839.3,carpentry:2340,hardscaping:13534.8,landscaping:532,design_consultation:1250,education:0,install_pct:33.7,maintenance_pct:0,install_total:51.61,maintenance_total:0.55,employees:{"John Powers":{bill:0,nonbill:30.18,total:30.18,pct:0},"Carly Fournier":{bill:0,nonbill:0,total:0,pct:0},"Stephen J. Gaj":{bill:5.78,nonbill:42.16,total:47.94,pct:12.1},"Rachael Savoie":{bill:0,nonbill:0.55,total:0.55,pct:0},"Drew Bleasdell":{bill:11.61,nonbill:4.04,total:15.65,pct:74.2}}},
+  {week_start:"2026-03-29",week_label:"Mar 29 – Apr 4",revenue:14876.15,total_hours:239.4,rev_per_hr:62.14,maintenance:10775.15,carpentry:0,hardscaping:3105,landscaping:746,design_consultation:250,education:0,install_pct:63.7,maintenance_pct:46,install_total:101.7,maintenance_total:69.27,employees:{"John Powers":{bill:22.82,nonbill:15.62,total:38.44,pct:59.4},"Carly Fournier":{bill:21.49,nonbill:15.35,total:36.84,pct:58.3},"Stephen J. Gaj":{bill:22.57,nonbill:28.54,total:51.11,pct:44.2},"Rachael Savoie":{bill:10.34,nonbill:22.09,total:32.43,pct:31.9},"Drew Bleasdell":{bill:19.37,nonbill:21.32,total:40.69,pct:47.6}}},
+  {week_start:"2026-04-05",week_label:"Apr 5 – Apr 11",revenue:16961.75,total_hours:213.8,rev_per_hr:79.34,maintenance:5287.75,carpentry:7724,hardscaping:0,landscaping:100,design_consultation:3750,education:100,install_pct:82.8,maintenance_pct:61.3,install_total:117.28,maintenance_total:69.06,employees:{"John Powers":{bill:30.91,nonbill:10.89,total:41.8,pct:73.9},"Carly Fournier":{bill:19.4,nonbill:10.6,total:30,pct:64.7},"Stephen J. Gaj":{bill:34.92,nonbill:8.91,total:43.83,pct:79.7},"Rachael Savoie":{bill:22.92,nonbill:16.14,total:39.06,pct:58.7},"Drew Bleasdell":{bill:31.3,nonbill:9.26,total:40.56,pct:77.2}}},
+  {week_start:"2026-04-12",week_label:"Apr 12 – Apr 18",revenue:21471.7,total_hours:224.1,rev_per_hr:95.8,maintenance:6968.25,carpentry:820.5,hardscaping:6005.75,landscaping:6802.2,design_consultation:625,education:250,install_pct:74.5,maintenance_pct:60.8,install_total:105.18,maintenance_total:66.05,employees:{"John Powers":{bill:22.6,nonbill:15.25,total:37.85,pct:59.7},"Carly Fournier":{bill:16.77,nonbill:10.95,total:27.72,pct:60.5},"Stephen J. Gaj":{bill:27.25,nonbill:19.2,total:46.45,pct:58.7},"Rachael Savoie":{bill:23.36,nonbill:14.97,total:38.33,pct:60.9},"Drew Bleasdell":{bill:28.56,nonbill:11.52,total:40.08,pct:71.3}}},
+  {week_start:"2026-04-19",week_label:"Apr 19 – Apr 25",revenue:23603.52,total_hours:259.7,rev_per_hr:90.9,maintenance:5878.82,carpentry:9805,hardscaping:0,landscaping:7419.7,design_consultation:500,education:0,install_pct:73.1,maintenance_pct:67.2,install_total:116.67,maintenance_total:87.35,employees:{"John Powers":{bill:18.77,nonbill:21.32,total:40.09,pct:46.8},"Carly Fournier":{bill:30.73,nonbill:13.18,total:43.91,pct:70},"Stephen J. Gaj":{bill:36.47,nonbill:15.48,total:51.95,pct:70.2},"Rachael Savoie":{bill:27.98,nonbill:15.46,total:43.44,pct:64.4},"Drew Bleasdell":{bill:30.08,nonbill:10.03,total:40.11,pct:75}}},
+  {week_start:"2026-04-26",week_label:"Apr 26 – May 2",revenue:6339.1,total_hours:215.9,rev_per_hr:29.36,maintenance:2614.1,carpentry:0,hardscaping:0,landscaping:3725,design_consultation:0,education:0,install_pct:84.2,maintenance_pct:57.8,install_total:94.08,maintenance_total:84.5,employees:{"John Powers":{bill:37.2,nonbill:5.06,total:42.26,pct:88},"Carly Fournier":{bill:25.84,nonbill:14.49,total:40.33,pct:64.1},"Stephen J. Gaj":{bill:7.06,nonbill:3.08,total:10.14,pct:69.6},"Rachael Savoie":{bill:23.03,nonbill:21.14,total:44.17,pct:52.1},"Drew Bleasdell":{bill:35,nonbill:6.68,total:41.68,pct:84}}},
+  {week_start:"2026-05-03",week_label:"May 3 – May 9",revenue:20926.43,total_hours:264.2,rev_per_hr:79.21,maintenance:9862.9,carpentry:0,hardscaping:0,landscaping:11063.53,design_consultation:0,education:0,install_pct:72.1,maintenance_pct:60.4,install_total:138.87,maintenance_total:89.37,employees:{"John Powers":{bill:34.73,nonbill:6.49,total:41.22,pct:84.3},"Carly Fournier":{bill:28.11,nonbill:14.26,total:42.37,pct:66.3},"Stephen J. Gaj":{bill:31.52,nonbill:22.7,total:54.22,pct:58.1},"Rachael Savoie":{bill:25.88,nonbill:21.12,total:47,pct:55.1},"Drew Bleasdell":{bill:33.89,nonbill:9.54,total:43.43,pct:78}}},
+  {week_start:"2026-05-10",week_label:"May 10 – May 16",revenue:11382.04,total_hours:221,rev_per_hr:51.5,maintenance:4407.65,carpentry:0,hardscaping:0,landscaping:6974.39,design_consultation:0,education:0,install_pct:70.9,maintenance_pct:59,install_total:121.22,maintenance_total:63.24,employees:{"John Powers":{bill:30.94,nonbill:7.1,total:38.04,pct:81.3},"Carly Fournier":{bill:20.39,nonbill:10.91,total:31.3,pct:65.1},"Stephen J. Gaj":{bill:30.02,nonbill:21.08,total:51.1,pct:58.7},"Rachael Savoie":{bill:16.93,nonbill:15.01,total:31.94,pct:53},"Drew Bleasdell":{bill:24.98,nonbill:7.1,total:32.08,pct:77.9}}},
+  {week_start:"2026-05-17",week_label:"May 17 – May 23",revenue:46917.15,total_hours:319.7,rev_per_hr:146.76,maintenance:6609.15,carpentry:0,hardscaping:0,landscaping:40108,design_consultation:200,education:0,install_pct:79.3,maintenance_pct:65.2,install_total:151.3,maintenance_total:100.2,employees:{"John Powers":{bill:41.96,nonbill:5.42,total:47.38,pct:88.6},"Carly Fournier":{bill:33.32,nonbill:13.98,total:47.3,pct:70.4},"Stephen J. Gaj":{bill:45.9,nonbill:11.6,total:57.5,pct:79.8},"Rachael Savoie":{bill:31.99,nonbill:20.95,total:52.94,pct:60.4},"Drew Bleasdell":{bill:32.15,nonbill:14.29,total:46.44,pct:69.2}}},
+  {week_start:"2026-05-24",week_label:"May 24 – May 30",revenue:30999.38,total_hours:274.9,rev_per_hr:112.77,maintenance:2701.08,carpentry:0,hardscaping:0,landscaping:28298.30,design_consultation:0,education:0,install_pct:63.0,maintenance_pct:69.4,install_total:129.3,maintenance_total:82.4,employees:{"John Powers":{bill:21.37,nonbill:24.97,total:46.34,pct:46.1},"Carly Fournier":{bill:28.88,nonbill:10.29,total:39.17,pct:73.7},"Stephen J. Gaj":{bill:34.54,nonbill:7.78,total:42.32,pct:81.6},"Rachael Savoie":{bill:28.33,nonbill:14.91,total:43.24,pct:65.5},"Drew Bleasdell":{bill:25.59,nonbill:15.03,total:40.62,pct:63.0}}},
+  {week_start:"2026-05-31",week_label:"May 31 – Jun 6",revenue:34429.95,total_hours:250.03,rev_per_hr:137.70,maintenance:6150.25,carpentry:0,hardscaping:0,landscaping:28279.70,design_consultation:0,education:0,install_pct:70.4,maintenance_pct:65.4,install_total:135.47,maintenance_total:71.18,employees:{"John Powers":{bill:29.80,nonbill:13.58,total:43.38,pct:68.7},"Carly Fournier":{bill:24.74,nonbill:15.85,total:40.59,pct:61.0},"Stephen J. Gaj":{bill:34.85,nonbill:17.64,total:52.49,pct:66.4},"Rachael Savoie":{bill:21.81,nonbill:8.78,total:30.59,pct:71.3},"Drew Bleasdell":{bill:28.09,nonbill:14.82,total:42.91,pct:65.5},"Mike Raley":{bill:32.37,nonbill:7.70,total:40.07,pct:80.8}}}
+];
+
+const CATS={
+  maintenance:         {lbl:"Maintenance",   color:"#4A8C5C",rev:89673.15,cnt:112}, // +$6,150 May 31-Jun 6
+  landscaping:         {lbl:"Landscaping",   color:"#6B8E23",rev:143477.22,cnt:55}, // +$28,280 May 31-Jun 6
+  carpentry:           {lbl:"Carpentry",      color:"#8B4513",rev:45031.88,cnt:16},
+  hardscaping:         {lbl:"Hardscaping",    color:"#708090",rev:29425.90,cnt:12},
+  design_consultation: {lbl:"Design/Consult", color:"#9370DB",rev:20900.00,cnt:36},
+  education:           {lbl:"Education",      color:"#E8A838",rev:1000.00, cnt:5}
+};
+const CAT_KEYS=Object.keys(CATS);
+const AVG_RH=93.64;
+const EMPS=["Carly Fournier","Rachael Savoie","Drew Bleasdell","Mike Raley","Stephen J. Gaj","John Powers"];
+const EMP_TEAM={"Carly Fournier":"Maintenance","Rachael Savoie":"Maintenance","Drew Bleasdell":"Install","Mike Raley":"Install","Stephen J. Gaj":"Install","John Powers":"Part-time"};
+const TEAM_CLR={Install:"#4A8C5C",Maintenance:"#E8A838","Part-time":"#7B9ED9"};
+
+const laborWks=WEEKS.filter(w=>w.install_total>0||w.maintenance_total>0);
+const latest=laborWks[laborWks.length-1];
+
+function runAvg(arr){const out=[];let s=0,n=0;for(const v of arr){if(v!=null&&v>0){s+=v;n++;}out.push(n?s/n:null);}return out;}
+
+// Install team excludes John Powers (PM role); falls back to stored install_pct for older weeks
+const INSTALL_EMPS_FOR_TEAM=["Drew Bleasdell","Stephen J. Gaj","Mike Raley"];
+const MAINT_EMPS_FOR_TEAM=["Carly Fournier","Rachael Savoie"];
+function dynTeamPct(w,emps){let b=0,t=0;emps.forEach(e=>{const d=w.employees[e];if(d&&d.total>0){b+=d.bill;t+=d.total;}});return t>0?100*b/t:null;}
+const iPcts=laborWks.map(w=>{const d=dynTeamPct(w,INSTALL_EMPS_FOR_TEAM);return d!=null?d:(w.install_pct||0);});
+const mPcts=laborWks.map(w=>{const d=dynTeamPct(w,MAINT_EMPS_FOR_TEAM);return d!=null?d:(w.maintenance_pct||0);});
+const iAvgs=runAvg(iPcts);
+const mAvgs=runAvg(mPcts);
+const wkLbls=laborWks.map(w=>w.week_label.split("–")[0].trim());
+
+document.getElementById("latestWk").textContent=latest.week_label;
+document.getElementById("kpiI").textContent=iPcts[iPcts.length-1]>0?iPcts[iPcts.length-1].toFixed(1)+"%":"—";
+document.getElementById("kpiM").textContent=latest.maintenance_pct>0?latest.maintenance_pct.toFixed(1)+"%":"—";
+document.getElementById("kpiR").textContent=(latest.rev_per_hr!=null&&latest.total_hours>0)?"$"+latest.rev_per_hr.toFixed(2):"—";
+document.getElementById("kpiIA").textContent=iAvgs[iAvgs.length-1]?iAvgs[iAvgs.length-1].toFixed(1)+"%":"—";
+document.getElementById("kpiMA").textContent=mAvgs[mAvgs.length-1]?mAvgs[mAvgs.length-1].toFixed(1)+"%":"—";
+
+new Chart(document.getElementById("teamChart"),{
+  type:"line",
+  data:{labels:wkLbls,datasets:[
+    {label:"Install %",data:iPcts,borderColor:"#4A8C5C",backgroundColor:"rgba(74,140,92,.07)",tension:.3,pointRadius:4,fill:false},
+    {label:"Install Avg",data:iAvgs,borderColor:"#4A8C5C",borderDash:[5,3],borderWidth:1.5,pointRadius:0,fill:false},
+    {label:"Maint %",data:mPcts,borderColor:"#E8A838",backgroundColor:"rgba(232,168,56,.07)",tension:.3,pointRadius:4,fill:false},
+    {label:"Maint Avg",data:mAvgs,borderColor:"#E8A838",borderDash:[5,3],borderWidth:1.5,pointRadius:0,fill:false}
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:"top",labels:{font:{size:9},boxWidth:14,padding:5}},tooltip:{mode:"index",intersect:false}},
+    scales:{y:{min:0,max:100,ticks:{callback:v=>v+"%",font:{size:9}},grid:{color:"#eee"}},x:{ticks:{font:{size:8},maxRotation:40},grid:{display:false}}}}
+});
+
+{
+  const rw=WEEKS.filter(w=>{const d=new Date(w.week_start);return d>=new Date("2026-03-01")&&w.total_hours>20&&w.rev_per_hr!=null&&w.rev_per_hr>0;});
+  new Chart(document.getElementById("revHrChart"),{
+    type:"bar",
+    data:{
+      labels:rw.map(w=>w.week_label.split("–")[0].trim()),
+      datasets:[
+        {label:"$/Hr",data:rw.map(w=>w.rev_per_hr),backgroundColor:rw.map(w=>w.rev_per_hr>=AVG_RH?"rgba(74,140,92,.75)":"rgba(192,57,43,.55)"),borderRadius:3,order:2},
+        {label:"Avg $93.64",data:rw.map(()=>AVG_RH),type:"line",borderColor:"#3B6EA8",borderDash:[4,3],borderWidth:2,pointRadius:0,fill:false,order:1}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:"top",labels:{font:{size:9},boxWidth:14,padding:5}},tooltip:{callbacks:{label:c=>"$"+c.raw.toFixed(2)+"/hr"}}},
+      scales:{y:{ticks:{callback:v=>"$"+v,font:{size:9}},grid:{color:"#eee"}},x:{ticks:{font:{size:8},maxRotation:40},grid:{display:false}}}}
+  });
+}
+
+{
+  const total=CAT_KEYS.reduce((s,k)=>s+CATS[k].rev,0);
+  document.getElementById("ytdTot").textContent="— $"+total.toLocaleString("en-US",{maximumFractionDigits:0})+" (thru Jun 6)";
+  new Chart(document.getElementById("donutChart"),{
+    type:"doughnut",
+    data:{labels:CAT_KEYS.map(k=>CATS[k].lbl),datasets:[{data:CAT_KEYS.map(k=>CATS[k].rev),backgroundColor:CAT_KEYS.map(k=>CATS[k].color),borderWidth:2,borderColor:"#fff",hoverOffset:5}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:"58%",
+      plugins:{legend:{position:"right",labels:{font:{size:9},boxWidth:10,padding:6}},
+        tooltip:{callbacks:{label:c=>" $"+c.raw.toLocaleString()+" ("+(c.raw/total*100).toFixed(1)+"%)"}}}
+    }
+  });
+}
+
+{
+  const sw=WEEKS.filter(w=>{const d=new Date(w.week_start);return d>=new Date("2026-03-01")&&d<=new Date("2026-06-06")&&w.revenue>0;});
+  new Chart(document.getElementById("stackChart"),{
+    type:"bar",
+    data:{
+      labels:sw.map(w=>w.week_label.split("–")[0].trim()),
+      datasets:CAT_KEYS.map(k=>({label:CATS[k].lbl,data:sw.map(w=>w[k]||0),backgroundColor:CATS[k].color,stack:"rev",borderWidth:0}))
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:"top",labels:{font:{size:9},boxWidth:10,padding:4}},tooltip:{mode:"index",callbacks:{label:c=>` ${c.dataset.label}: $${c.raw.toLocaleString()}`}}},
+      scales:{x:{stacked:true,ticks:{font:{size:8},maxRotation:40},grid:{display:false}},y:{stacked:true,ticks:{callback:v=>"$"+(v/1000).toFixed(0)+"k",font:{size:9}},grid:{color:"#eee"}}}}
+  });
+}
+
+{
+  const g=document.getElementById("catGrid");
+  for(const k of CAT_KEYS){
+    const c=CATS[k];
+    const d=document.createElement("div");
+    d.className="cat-tile";
+    d.innerHTML=`<div><span class="cat-dot" style="background:${c.color}"></span></div><div class="cat-nm">${c.lbl}</div><div class="cat-amt">$${c.rev.toLocaleString("en-US",{maximumFractionDigits:0})}</div><div class="cat-cnt">${c.cnt} inv.</div>`;
+    g.appendChild(d);
+  }
+}
+
+{
+  const eg=document.getElementById("empGrid");
+  const sparkWks=laborWks.slice(-8);
+  EMPS.forEach((emp,idx)=>{
+    const div=document.createElement("div");div.className="emp";
+    const le=latest.employees[emp]||{pct:0,total:0};
+    const empPcts=laborWks.map(w=>{const e=w.employees[emp];return e&&e.total>0?e.pct:null;}).filter(v=>v!=null);
+    const avg=empPcts.length?empPcts.reduce((a,b)=>a+b,0)/empPcts.length:0;
+    const tc=TEAM_CLR[EMP_TEAM[emp]];
+    div.innerHTML=`<div class="emp-nm">${emp}</div><div class="emp-team" style="color:${tc}">${EMP_TEAM[emp]}</div><div class="emp-pct" style="color:${tc}">${le.pct>0?le.pct.toFixed(1)+"%":"—"}</div><div class="emp-stat">${le.total>0?le.total.toFixed(1)+"h · ":""}avg ${avg>0?avg.toFixed(1)+"%":"—"}</div><div class="spark"><canvas id="sp${idx}"></canvas></div>`;
+    eg.appendChild(div);
+    requestAnimationFrame(()=>{
+      const data=sparkWks.map(w=>{const e=w.employees[emp];return e&&e.total>0?e.pct:null;});
+      new Chart(document.getElementById("sp"+idx),{
+        type:"bar",
+        data:{labels:sparkWks.map(w=>w.week_label.split("–")[0].trim()),datasets:[{data,backgroundColor:data.map(v=>v==null?"transparent":v>=70?"rgba(74,140,92,.7)":v>=50?"rgba(232,168,56,.7)":"rgba(192,57,43,.55)"),borderRadius:2}]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw!=null?c.raw.toFixed(1)+"%":"—"}}},scales:{y:{min:0,max:100,display:false},x:{ticks:{font:{size:7},maxRotation:45},grid:{display:false}}}}
+      });
+    });
+  });
+}
+
+{
+  const tb=document.getElementById("tBody");
+  const pc=v=>v>=70?"hi":v>=50?"md":v>0?"lo":"";
+  const f$=v=>v>0?"$"+v.toLocaleString("en-US",{maximumFractionDigits:0}):"—";
+  let iS=0,iN=0,mS=0,mN=0;
+  const eSums={},eNs={};
+  EMPS.forEach(e=>{eSums[e]=0;eNs[e]=0;});
+  laborWks.forEach(w=>{
+    const tr=document.createElement("tr");
+    const ip=dynTeamPct(w,INSTALL_EMPS_FOR_TEAM)||w.install_pct;
+    const mp=dynTeamPct(w,MAINT_EMPS_FOR_TEAM)||w.maintenance_pct;
+    if(ip>0){iS+=ip;iN++;}if(mp>0){mS+=mp;mN++;}
+    EMPS.forEach(e=>{const en=w.employees[e];if(en&&en.total>0){eSums[e]+=en.pct;eNs[e]++;}});
+    const ec=EMPS.map(e=>{const en=w.employees[e];if(!en||en.total===0)return"<td>—</td>";return`<td class="${pc(en.pct)}">${en.pct.toFixed(0)}%</td>`;}).join("");
+    tr.innerHTML=`<td>${w.week_label}</td><td class="${pc(ip)}">${ip>0?ip.toFixed(1)+"%":"—"}</td><td class="${pc(mp)}">${mp>0?mp.toFixed(1)+"%":"—"}</td>${ec}<td>${w.total_hours>0?w.total_hours.toFixed(1):"—"}</td><td>${f$(w.revenue)}</td><td>${w.rev_per_hr!=null&&w.total_hours>0&&w.rev_per_hr>0?"$"+w.rev_per_hr.toFixed(0):"—"}</td>`;
+    tb.appendChild(tr);
+  });
+  const ar=document.createElement("tr");ar.className="avg-row";
+  const eac=EMPS.map(e=>`<td>${eNs[e]?(eSums[e]/eNs[e]).toFixed(0)+"%":"—"}</td>`).join("");
+  ar.innerHTML=`<td>Running Avg</td><td>${iN?(iS/iN).toFixed(1)+"%":"—"}</td><td>${mN?(mS/mN).toFixed(1)+"%":"—"}</td>${eac}<td>—</td><td>—</td><td>$${AVG_RH}</td>`;
+  tb.appendChild(ar);
+}
+</script>
+</body>
+</html>
